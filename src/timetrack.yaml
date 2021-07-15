@@ -11,8 +11,8 @@ args:
         global: true
         help: Prints extra information, unimplemented.
     - mute:
-        short: m
-        long: mute
+        short: q
+        long: quiet
         global: true
         help: Mutes all output messages, unimplemented.
     - config:

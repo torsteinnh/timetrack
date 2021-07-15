@@ -8,7 +8,7 @@ use std::time::Duration;
 use super::options::Options;
 
 
-type Sheet = Vec<Event>;
+pub type Sheet = Vec<Event>;
 
 pub fn begin(config: Options, verbose: bool) {
     let begin_event = Event::BEGIN(Local::now());
@@ -45,7 +45,11 @@ pub fn pause(config: Options, pause_time: &str, verbose: bool) {
 
 pub fn switch(config: Options, into: String, verbose: bool) {
     // TODO Make logic that verifies if into is a valid u_name for a JobType in config.
-    let switch_event = Event::SWITCH(Local::now(), into.clone());
+    let job_id = match into.clone().parse::<usize>() {
+        Ok(id) => JobIdentifier::ProjectId(id),
+        Err(_) => JobIdentifier::UName(into.clone())
+    };
+    let switch_event = Event::SWITCH(Local::now(), job_id);
 
     let mut sheet = read_sheet(&config.timesheet);
     sheet.push(switch_event);
@@ -64,17 +68,24 @@ pub fn nevermind(config: Options, muted: bool) {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-enum Event {
+pub enum Event {
     BEGIN(DateTime<Local>),
     END(DateTime<Local>),
     PAUSE(Duration),
-    SWITCH(DateTime<Local>, String)
+    SWITCH(DateTime<Local>, JobIdentifier)
 }
 
 
-fn read_sheet(path: &str) -> Sheet {
+#[derive(Serialize, Deserialize, Debug)]
+pub enum JobIdentifier {
+    UName(String),
+    ProjectId(usize)
+}
+
+
+pub fn read_sheet(path: &str) -> Sheet {
     let sheet_str = fs::read_to_string(path)
-        .expect(&format!("Unable to read timesheet file at {}", path));
+        .unwrap_or(String::from("[]"));
     let config: Sheet = serde_json::from_str(&sheet_str)
         .expect(&format!("Timesheet file at {} with content {} was unreadable as a timesheet.", path, sheet_str));
     config
