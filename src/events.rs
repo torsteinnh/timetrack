@@ -5,7 +5,7 @@ use parse_duration;
 use std::fs;
 use std::time::Duration;
 
-use super::options::Options;
+use crate::options::Options;
 
 
 pub type Sheet = Vec<Event>;
