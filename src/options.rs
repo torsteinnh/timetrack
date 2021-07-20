@@ -1,8 +1,7 @@
 use serde::{Serialize, Deserialize};
 use dirs;
-use dialoguer::Input;
 
-use std::fs;
+use std::{fs, io::{self, Write}};
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -72,28 +71,38 @@ impl Default for JobType {
 
 
 pub fn new_job(mut config: Options) {
-    println!("Welcome to the wizzard for creating a new job/project!
+    println!("Welcome to the wizard for creating a new job/project!
 A job concists of a unique name, a unique project id, a nonunique category id and a description.");
 
-    let u_name: String = Input::new()
-        .with_prompt("Input unique name (string):")
-        .interact_text()
-        .expect("Illegal input for u_name.");
+    let mut iobuff: String = "".to_string();
     
-    let project_id: usize = Input::new()
-        .with_prompt("Input project_id (usize):")
-        .interact_text()
-        .expect("Illegal input for project_id.");
+    print!("Input unique name (string): ");
+    io::stdout().flush().unwrap();
+    iobuff.drain(..);
+    io::stdin().read_line(&mut iobuff).unwrap();
+    iobuff = iobuff.trim().to_string();
+    let u_name: String = iobuff.clone();
     
-    let category: usize = Input::new()
-        .with_prompt("Input category (usize):")
-        .interact_text()
-        .expect("Illegal input for category.");
+    print!("Input unique project ID (int): ");
+    io::stdout().flush().unwrap();
+    iobuff.drain(..);
+    io::stdin().read_line(&mut iobuff).unwrap();
+    iobuff = iobuff.trim().to_string();
+    let project_id: usize = iobuff.parse().unwrap();
     
-    let description: String = Input::new()
-        .with_prompt("Input description (String):")
-        .interact_text()
-        .expect("Illegal input for description.");
+    print!("Input project category (int): ");
+    io::stdout().flush().unwrap();
+    iobuff.drain(..);
+    io::stdin().read_line(&mut iobuff).unwrap();
+    iobuff = iobuff.trim().to_string();
+    let category: usize = iobuff.parse().unwrap();
+    
+    print!("Input descriptive string for project (string): ");
+    io::stdout().flush().unwrap();
+    iobuff.drain(..);
+    io::stdin().read_line(&mut iobuff).unwrap();
+    iobuff = iobuff.trim().to_string();
+    let description: String = iobuff;
     
     let new_job = JobType{u_name, project_id, category, description};
 

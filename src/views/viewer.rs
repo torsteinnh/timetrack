@@ -102,18 +102,28 @@ fn parse_sheet(mut sheet: Sheet, config: Options) -> (ParsedSheet, Options) {
             },
 
             Event::SWITCH(time, job_id) => {
-                dow = time.weekday().num_days_from_monday() as usize;
+                if job_id.get_jobtype(&config).unwrap().project_id != current_project.project_id {
+                    dow = time.weekday().num_days_from_monday() as usize;
                 
-                current_week_work.projects.get_mut(cpid).unwrap().days[dow].end = Some(time);
-                current_week_work.projects.get_mut(cpid).unwrap().days[dow].total_day =
-                    (time - current_week_work.projects.get_mut(cpid).unwrap().days[dow].start.unwrap()).to_std().unwrap()
-                    - current_week_work.projects.get_mut(cpid).unwrap().days[dow].breaks;
+                    current_week_work.projects.get_mut(cpid).unwrap().days[dow].end = Some(time);
+                    current_week_work.projects.get_mut(cpid).unwrap().days[dow].total_day =
+                        (time - current_week_work.projects.get_mut(cpid).unwrap().days[dow].start.unwrap()).to_std().unwrap()
+                        - current_week_work.projects.get_mut(cpid).unwrap().days[dow].breaks;
 
-                current_project = job_id.get_jobtype(&config).expect(&format!("No project found for id {:?}", job_id));
-                cpid = &current_project.project_id;
-                current_week_work.projects.insert(*cpid, WeeksProjectWork::default());
+                    current_project = job_id.get_jobtype(&config).expect(&format!("No project found for id {:?}", job_id));
+                    cpid = &current_project.project_id;
 
-                current_week_work.projects.get_mut(cpid).unwrap().days[dow].start = Some(time);
+                    if current_week_work.projects.contains_key(cpid) {
+                        let end_time = current_week_work.projects.get(cpid).unwrap().days[dow].end.unwrap();
+                        current_week_work.projects.get_mut(cpid).unwrap().days[dow].breaks +=
+                            (time - end_time)
+                            .to_std().unwrap();
+                        current_week_work.projects.get_mut(cpid).unwrap().days[dow].end = None;
+                    } else {
+                        current_week_work.projects.insert(*cpid, WeeksProjectWork::default());
+                        current_week_work.projects.get_mut(cpid).unwrap().days[dow].start = Some(time);
+                    }
+                }
             }
         }
     };

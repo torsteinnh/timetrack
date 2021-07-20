@@ -4,7 +4,7 @@ use crate::options::Options;
 
 
 pub fn show(parsed: ParsedSheet, config: Options) {
-    println!("Report for timesheet formated for MS Dynamicd:");
+    println!("Report for timesheet formated for MS Dynamic:");
 
     for week in parsed {
         println!("\nReport for week {}:", week.week_number);
