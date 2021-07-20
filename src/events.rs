@@ -5,7 +5,7 @@ use parse_duration;
 use std::fs;
 use std::time::Duration;
 
-use crate::options::Options;
+use crate::options::{JobType, Options};
 
 
 pub type Sheet = Vec<Event>;
@@ -80,6 +80,18 @@ pub enum Event {
 pub enum JobIdentifier {
     UName(String),
     ProjectId(usize)
+}
+
+impl JobIdentifier {
+    pub fn get_jobtype(&self, config: &Options) -> Option<JobType> {
+        for job in &config.projects {
+            match self {
+                Self::UName(name) => { if name == &job.u_name { return Some(job.clone()) } },
+                Self::ProjectId(id) => { if id == &job.project_id { return Some(job.clone()) } }
+            }
+        }
+        None
+    }
 }
 
 

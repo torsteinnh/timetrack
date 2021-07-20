@@ -5,7 +5,7 @@ use dialoguer::Input;
 use std::fs;
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Options {
     pub timesheet: String,
     pub default_output: LogType,
@@ -41,7 +41,7 @@ impl Options {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum LogType {
     MSDynamics
 }
@@ -51,12 +51,12 @@ impl Default for LogType {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JobType {
-    u_name: String,
-    project_id: usize,
-    category: usize,
-    description: String
+    pub u_name: String,
+    pub project_id: usize,
+    pub category: usize,
+    pub description: String
 }
 
 impl Default for JobType {
@@ -65,7 +65,7 @@ impl Default for JobType {
             u_name: String::from("example"),
             project_id: 0,
             category: 0,
-            description: String::from("A phony job type for illustration purposes.")
+            description: String::from("A phony job type for when none is given.")
         }
     }
 }

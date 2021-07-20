@@ -3,7 +3,7 @@
 [package]
 name = "timetrack"
 version = "0.1.0"
-authors = ["ton1 <torstein.nordgard-hansen@nordicsemi.no>"]
+authors = ["torsteinnh <torsteinnh@gmail.com>"]
 edition = "2018"
 
 [lib]

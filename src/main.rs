@@ -53,7 +53,7 @@ fn main() {
         // Output
         ("show", Some(_sub_args)) => {
             let sheet = events::read_sheet(&config.timesheet);
-            viewer::show(sheet, config.default_output);
+            viewer::show(sheet, config);
         }
         
         // Manipulating config
