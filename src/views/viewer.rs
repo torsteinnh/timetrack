@@ -1,7 +1,7 @@
 use chrono::prelude::*;
 
 use std::time::Duration;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::show_msdynamics;
 use crate::events::{Sheet, Event};
@@ -151,6 +151,6 @@ pub struct WeeksProjectWork {
 #[derive(Default)]
 pub struct WeeksWork {
     pub total: WeeksProjectWork,
-    pub projects: HashMap<usize, WeeksProjectWork>,
+    pub projects: BTreeMap<usize, WeeksProjectWork>,
     pub week_number: u32
 }

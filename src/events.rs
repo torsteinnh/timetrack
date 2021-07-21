@@ -4,6 +4,7 @@ use parse_duration;
 
 use std::fs;
 use std::time::Duration;
+use std::process::exit;
 
 use crate::options::{JobType, Options};
 
@@ -44,11 +45,16 @@ pub fn pause(config: Options, pause_time: &str, verbose: bool) {
 }
 
 pub fn switch(config: Options, into: String, verbose: bool) {
-    // TODO Make logic that verifies if into is a valid u_name for a JobType in config.
     let job_id = match into.clone().parse::<usize>() {
         Ok(id) => JobIdentifier::ProjectId(id),
         Err(_) => JobIdentifier::UName(into.clone())
     };
+
+    if let None = job_id.get_jobtype(&config) {
+        eprintln!("Could not find project identified by {}, try creating job first with \"timetrack new\"", &into);
+        exit(1);
+    }
+
     let switch_event = Event::SWITCH(Local::now(), job_id);
 
     let mut sheet = read_sheet(&config.timesheet);

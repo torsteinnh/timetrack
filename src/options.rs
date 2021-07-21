@@ -1,7 +1,11 @@
 use serde::{Serialize, Deserialize};
 use dirs;
 
-use std::{fs, io::{self, Write}};
+use std::fs;
+use std::io::{self, Write};
+use std::process::exit;
+
+use crate::events::JobIdentifier;
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -104,7 +108,18 @@ A job concists of a unique name, a unique project id, a nonunique category id an
     iobuff = iobuff.trim().to_string();
     let description: String = iobuff;
     
-    let new_job = JobType{u_name, project_id, category, description};
+    let new_job = JobType{u_name: u_name.clone(), project_id, category, description};
+
+    if let Some(job) = JobIdentifier::ProjectId(project_id).get_jobtype(&config) {
+        eprintln!("Job with id {} already exists:", project_id);
+        eprintln!("Job name {}, category {} and description \"{}\"", job.u_name, job.category, job.description);
+        exit(1);
+    }
+    if let Some(job) = JobIdentifier::UName(u_name).get_jobtype(&config) {
+        eprintln!("Job with name {} already exists:", job.u_name);
+        eprintln!("Job id {}, category {} and description \"{}\"", job.project_id, job.category, job.description);
+        exit(1);
+    }
 
 
     config.projects.push(new_job);
