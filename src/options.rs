@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use dirs;
+use prettytable::{Table, row, cell, format};
 
 use std::fs;
 use std::io::{self, Write};
@@ -76,7 +77,7 @@ impl Default for JobType {
 
 pub fn new_job(mut config: Options) {
     println!("Welcome to the wizard for creating a new job/project!
-A job concists of a unique name, a unique project id, a nonunique category id and a description.");
+A job consists of a unique name, a unique project id, a non-unique category id and a description.");
 
     let mut iobuff: String = "".to_string();
     
@@ -124,6 +125,20 @@ A job concists of a unique name, a unique project id, a nonunique category id an
 
     config.projects.push(new_job);
     config.save();
+}
+
+
+pub fn show_jobs(config: Options) {
+    println!("List of registered projects in the config:");
+    let mut table = Table::new();
+    table.set_titles(row!["Name", "ID", "Category", "Description"]);
+
+    for job in config.projects {
+        table.add_row(row![cell!(job.u_name), cell!(r -> job.project_id), cell!(r -> job.category), cell!(job.description)]);
+    }
+
+    table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
+    table.printstd();
 }
 
 

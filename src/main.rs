@@ -3,7 +3,7 @@ use dirs;
 
 use std::fs;
 
-use timetrack::options::{Options, new_job, open_sheet};
+use timetrack::options::{Options, new_job, open_sheet, show_jobs};
 use timetrack::events;
 use timetrack::views::viewer;
 
@@ -55,6 +55,8 @@ fn main() {
             let sheet = events::read_sheet(&config.timesheet);
             viewer::show(sheet, config);
         }
+
+        ("projects", Some(_sub_args)) => { show_jobs(config) }
         
         // Manipulating config
         ("new", Some(_sub_args)) => { new_job(config) }
@@ -65,6 +67,6 @@ fn main() {
         }
 
         // Error handling
-        _ => unreachable!()
+        _ => println!("Timetrack needs a subcommand, run \"timetrack help\" for help.")
     }
 }

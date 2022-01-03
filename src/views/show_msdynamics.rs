@@ -6,7 +6,7 @@ use crate::options::Options;
 
 
 pub fn show(parsed: ParsedSheet, config: Options) {
-    println!("Report for timesheet formated for MS Dynamic:");
+    println!("Report for timesheet formatted for MS Dynamic:");
 
     for week in parsed {
         let mut table = Table::new();

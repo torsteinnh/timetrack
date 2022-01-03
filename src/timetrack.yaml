@@ -51,6 +51,9 @@ subcommands:
 
     - new:
         about: Command to open the new project wizard.
+    
+    - projects:
+        about: Command to list registered projects.
 
     - show:
         about: The main tool for generating nice timetracking reports.
