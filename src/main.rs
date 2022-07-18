@@ -34,34 +34,34 @@ fn main() {
 
     match args.subcommand() {
         // Events
-        ("begin", Some(_sub_args)) => { events::begin(config, verbose);}
+        Some(("begin", _sub_args)) => { events::begin(&config, verbose);}
 
-        ("end", Some(_sub_args)) => { events::end(config, verbose); }
+        Some(("end", _sub_args)) => { events::end(&config, verbose); }
 
-        ("pause", Some(sub_args)) => {
+        Some(("pause", sub_args)) => {
             let pause_time = sub_args.value_of("duration").unwrap();
-            events::pause(config, pause_time, verbose);
+            events::pause(&config, pause_time, verbose);
         }
 
-        ("switch", Some(sub_args)) => {
+        Some(("switch", sub_args)) => {
             let into = String::from(sub_args.value_of("project").unwrap());
-            events::switch(config, into, verbose);
+            events::switch(&config, into, verbose);
         }
 
-        ("nevermind", Some(_sub_args)) => { events::nevermind(config, muted); }
+        Some(("nevermind", _sub_args)) => { events::nevermind(&config, muted); }
 
         // Output
-        ("show", Some(_sub_args)) => {
+        Some(("show", _sub_args)) => {
             let sheet = events::read_sheet(&config.timesheet);
-            viewer::show(sheet, config);
+            viewer::show(sheet, &config);
         }
 
-        ("projects", Some(_sub_args)) => { show_jobs(config) }
+        Some(("projects", _sub_args)) => { show_jobs(config) }
         
         // Manipulating config
-        ("new", Some(_sub_args)) => { new_job(config) }
+        Some(("new", _sub_args)) => { new_job(config) }
 
-        ("sheet", Some(sub_args)) => {
+        Some(("sheet", sub_args)) => {
             let sheet_name = sub_args.value_of("sheet_name").unwrap();
             open_sheet(config, sheet_name);
         }

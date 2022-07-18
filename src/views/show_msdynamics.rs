@@ -5,7 +5,7 @@ use crate::events::JobIdentifier;
 use crate::options::Options;
 
 
-pub fn show(parsed: ParsedSheet, config: Options) {
+pub fn show(parsed: ParsedSheet, config: &Options) {
     println!("Report for timesheet formatted for MS Dynamic:");
 
     for week in parsed {
@@ -16,7 +16,7 @@ pub fn show(parsed: ParsedSheet, config: Options) {
         for (key, project_week) in week.projects.iter() {
             let mut cell_vec: Vec<Cell> = Vec::new();
 
-            let project = JobIdentifier::ProjectId(*key).get_jobtype(&config).unwrap();
+            let project = JobIdentifier::ProjectId(*key).get_jobtype(config).unwrap();
 
             cell_vec.push(cell!(project.u_name));
             cell_vec.push(cell!(r -> project.project_id));

@@ -128,11 +128,12 @@ A job consists of a unique name, a unique project id, a non-unique category id a
 }
 
 
-pub fn show_jobs(config: Options) {
+pub fn show_jobs(mut config: Options) {
     println!("List of registered projects in the config:");
     let mut table = Table::new();
     table.set_titles(row!["Name", "ID", "Category", "Description"]);
 
+    config.projects.sort_by_key(|job| job.project_id);
     for job in config.projects {
         table.add_row(row![cell!(job.u_name), cell!(r -> job.project_id), cell!(r -> job.category), cell!(job.description)]);
     }

@@ -11,7 +11,7 @@ use crate::options::{JobType, Options};
 
 pub type Sheet = Vec<Event>;
 
-pub fn begin(config: Options, verbose: bool) {
+pub fn begin(config: &Options, verbose: bool) {
     let begin_event = Event::BEGIN(Local::now());
 
     let mut sheet = read_sheet(&config.timesheet);
@@ -21,7 +21,7 @@ pub fn begin(config: Options, verbose: bool) {
     if verbose { println!("Wrote begin to timesheet at {}", &config.timesheet); }
 }
 
-pub fn end(config: Options, verbose: bool) {
+pub fn end(config: &Options, verbose: bool) {
     let end_event = Event::END(Local::now());
 
     let mut sheet = read_sheet(&config.timesheet);
@@ -31,7 +31,7 @@ pub fn end(config: Options, verbose: bool) {
     if verbose { println!("Wrote end to timesheet at {}", &config.timesheet); }
 }
 
-pub fn pause(config: Options, pause_time: &str, verbose: bool) {
+pub fn pause(config: &Options, pause_time: &str, verbose: bool) {
     let pause_duration = parse_duration::parse(pause_time)
         .expect(&format!("Unable to parse {} into a duration.", pause_time));
 
@@ -44,13 +44,13 @@ pub fn pause(config: Options, pause_time: &str, verbose: bool) {
     if verbose { println!("Wrote pause {} to timesheet at {}", &pause_time, &config.timesheet); }
 }
 
-pub fn switch(config: Options, into: String, verbose: bool) {
+pub fn switch(config: &Options, into: String, verbose: bool) {
     let job_id = match into.clone().parse::<usize>() {
         Ok(id) => JobIdentifier::ProjectId(id),
         Err(_) => JobIdentifier::UName(into.clone())
     };
 
-    if let None = job_id.get_jobtype(&config) {
+    if let None = job_id.get_jobtype(config) {
         eprintln!("Could not find project identified by {}, try creating job first with \"timetrack new\"", &into);
         exit(1);
     }
@@ -64,7 +64,7 @@ pub fn switch(config: Options, into: String, verbose: bool) {
     if verbose { println!("Wrote switch to {} to timesheet at {}", &into, &config.timesheet); }
 }
 
-pub fn nevermind(config: Options, muted: bool) {
+pub fn nevermind(config: &Options, muted: bool) {
     let mut sheet = read_sheet(&config.timesheet);
     let popped = sheet.pop();
     write_sheet(sheet, &config.timesheet);
