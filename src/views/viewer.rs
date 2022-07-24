@@ -3,7 +3,7 @@ use chrono::prelude::*;
 use std::time::Duration;
 use std::collections::BTreeMap;
 
-use super::show_msdynamics;
+use super::show_default;
 use crate::events::{Sheet, Event};
 use crate::options::{LogType, JobType, Options};
 
@@ -15,7 +15,7 @@ pub fn show(sheet: Sheet, config: &Options) {
     let parsed = parse_sheet(sheet, config);
 
     match config.default_output {
-        LogType::MSDynamics => show_msdynamics::show(parsed, config)
+        LogType::Default => show_default::show(parsed, config)
     }
 }
 

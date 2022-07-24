@@ -47,11 +47,11 @@ impl Options {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum LogType {
-    MSDynamics
+    Default
 }
 
 impl Default for LogType {
-    fn default() -> Self { LogType::MSDynamics }
+    fn default() -> Self { LogType::Default }
 }
 
 
