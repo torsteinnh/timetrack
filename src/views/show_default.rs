@@ -5,7 +5,7 @@ use crate::events::JobIdentifier;
 use crate::options::Options;
 
 
-pub fn show(parsed: ParsedSheet, config: &Options) {
+pub fn show(parsed: ParsedSheet, current_project_id: JobIdentifier, config: &Options) {
     println!("Report for timesheet formatted for MS Dynamic:");
 
     for week in parsed {
@@ -38,5 +38,8 @@ pub fn show(parsed: ParsedSheet, config: &Options) {
         println!();
         table.printstd();
     }
+
+    let current_project = current_project_id.get_jobtype(config).unwrap();
     println!();
+    println!("Working on project {} with ID {} and category {}.", current_project.u_name, current_project.project_id, current_project.category);
 }

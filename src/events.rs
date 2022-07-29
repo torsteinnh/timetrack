@@ -5,12 +5,14 @@ use parse_duration;
 use std::fs;
 use std::time::Duration;
 use std::process::exit;
+use std::fmt;
 
 use crate::options::{JobType, Options};
 
 
 pub type Sheet = Vec<Event>;
 
+// TODO: Add warning if begin after other than end
 pub fn begin(config: &Options, verbose: bool) {
     let begin_event = Event::BEGIN(Local::now());
 
@@ -21,6 +23,7 @@ pub fn begin(config: &Options, verbose: bool) {
     if verbose { println!("Wrote begin to timesheet at {}", &config.timesheet); }
 }
 
+// TODO: Panic if end after end, panic if end on new day
 pub fn end(config: &Options, verbose: bool) {
     let end_event = Event::END(Local::now());
 
@@ -79,6 +82,17 @@ pub enum Event {
     END(DateTime<Local>),
     PAUSE(Duration),
     SWITCH(DateTime<Local>, JobIdentifier)
+}
+
+impl fmt::Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::BEGIN(..) => write!(f, "BEGIN"),
+            Self::END(..) => write!(f, "END"),
+            Self::PAUSE(..) => write!(f, "PAUSE"),
+            Self::SWITCH(..) => write!(f, "SWITCH")
+        }
+    }
 }
 
 

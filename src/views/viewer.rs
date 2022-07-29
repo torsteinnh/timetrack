@@ -4,154 +4,164 @@ use std::time::Duration;
 use std::collections::BTreeMap;
 
 use super::show_default;
-use crate::events::{Sheet, Event};
+use crate::events::{Sheet, Event, JobIdentifier};
 use crate::options::{LogType, JobType, Options};
 
 
 pub type ParsedSheet = Vec<WeeksWork>;
+pub type DaysWork = BTreeMap<usize, DaysProjectWork>;
 
 
 pub fn show(sheet: Sheet, config: &Options) {
-    let parsed = parse_sheet(sheet, config);
+    let (parsed, project_id) = parse_sheet(sheet, config);
 
     match config.default_output {
-        LogType::Default => show_default::show(parsed, config)
+        LogType::Default => show_default::show(parsed, project_id, config)
     }
 }
 
 
-fn parse_sheet(mut sheet: Sheet, config: &Options) -> ParsedSheet {
+fn parse_sheet(mut sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
     let mut parsed_sheet: ParsedSheet = vec![];
 
-    let mut current_week_work = WeeksWork::default();
+    let mut current_week_work: WeeksWork = WeeksWork::default();
+    let mut current_day_work: DaysWork = DaysWork::default();
 
-    let mut dow: usize = 0; // Day of week
-    let mut cpid: usize = JobType::default().project_id;
+    let mut last_dow: usize = 0; // Last parsed day of week
+    let mut cpid: usize = JobType::default().project_id; // Current project ID
 
     
-    let mut head = 0;
-    for event in &mut sheet {
-        head += 1;
-        match event {
-            Event::BEGIN(time) => {
-                dow = time.weekday().num_days_from_monday() as usize;
-
-                current_week_work.week_number = time.iso_week().week();
-                current_week_work.total.days[dow].start = Some(*time);
-                
-                current_week_work.projects.insert(cpid, current_week_work.total);
-                break
-            }
-
-            Event::SWITCH(_, job_id) => {
-                cpid = job_id.get_jobtype(config).unwrap().project_id;
-            }
-
-            _ => panic!("Illegal event other than switch before begin, consider editing timesheet manually.")
-        }
-    }
-    sheet.drain(0..head);
-
+    // Handler logic for allowing event switching before first begin in sheet
+    let mut begun: bool = false;
 
     for event in sheet {
-        match event {
-            Event::BEGIN(time) => {
+        match (event, begun) {
+            (Event::BEGIN(time), false) => {
+                begun = true;
+                current_week_work.week_number = time.iso_week().week();
+                last_dow = time.weekday().num_days_from_monday() as usize;
+                current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
+            },
+
+            (Event::BEGIN(time), true) => {
+
                 if time.iso_week().week() != current_week_work.week_number {
+                    if current_day_work.get(&cpid).unwrap().total_day == Duration::from_secs(0) {
+                        eprintln!("Work was not finished on project {} last week, work on that project that day is ignored.", cpid);
+                    }
+
+                    current_week_work.days[last_dow] = current_day_work;
                     parsed_sheet.push(current_week_work);
+                    
                     current_week_work = WeeksWork::default();
                     current_week_work.week_number = time.iso_week().week();
-                    current_week_work.projects.insert(cpid, WeeksProjectWork::default());
-                }
-                
-                let new_dow = time.weekday().num_days_from_monday() as usize;
-                if new_dow != dow {
-                    current_week_work.projects.insert(cpid, WeeksProjectWork::default());
-                }
-                dow = new_dow;
+                    current_day_work = DaysWork::default();
+                    current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
 
-                if let Some(end_time) = current_week_work.total.days[dow].end {
-                    current_week_work.total.days[dow].breaks += (time - end_time).to_std().unwrap();
-                    current_week_work.total.days[dow].end = None;
-                    
-                    let project_end_time = current_week_work.projects.get_mut(&cpid).unwrap().days[dow].end.unwrap();
-                    current_week_work.projects.get_mut(&cpid).unwrap().days[dow].breaks += (time - project_end_time).to_std().unwrap();
-                    current_week_work.projects.get_mut(&cpid).unwrap().days[dow].end = None;
+                    last_dow = time.weekday().num_days_from_monday() as usize;
+
+                } else if time.weekday().num_days_from_monday() as usize != last_dow {
+                    if current_day_work.get(&cpid).unwrap().total_day == Duration::from_secs(0) {
+                        eprintln!("Work was not finished on project {} last day, work on that project that day is ignored.", cpid);
+                    }
+
+                    current_week_work.days[last_dow] = current_day_work;
+                    current_day_work = DaysWork::default();
+                    current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
+
+                    last_dow = time.weekday().num_days_from_monday() as usize;
+
                 } else {
-                    current_week_work.total.days[dow].start = Some(time);
-
-                    current_week_work.projects.get_mut(&cpid).unwrap().days[dow].start = Some(time);
+                    current_day_work.get_mut(&cpid).unwrap().start = Some(time - chrono::Duration::from_std(current_day_work.get(&cpid).unwrap().total_day).unwrap());
                 }
             },
 
-            Event::END(time) => {
-                dow = time.weekday().num_days_from_monday() as usize;
-
-                current_week_work.total.days[dow].end = Some(time);
-                current_week_work.total.days[dow].total_day =
-                    (time - current_week_work.total.days[dow].start.unwrap()).to_std().unwrap()
-                    - current_week_work.total.days[dow].breaks;
-                
-                current_week_work.projects.get_mut(&cpid).unwrap().days[dow].end = Some(time);
-                current_week_work.projects.get_mut(&cpid).unwrap().days[dow].total_day =
-                    (time - current_week_work.projects.get_mut(&cpid).unwrap().days[dow].start.unwrap()).to_std().unwrap()
-                    - current_week_work.projects.get_mut(&cpid).unwrap().days[dow].breaks;
+            (Event::SWITCH(_, job_id), false) => {
+                begun = true;
+                cpid = job_id.get_jobtype(config).unwrap().project_id;
             },
 
-            Event::PAUSE(interval) => {
-                current_week_work.total.days[dow].breaks += interval;
-                current_week_work.projects.get_mut(&cpid).unwrap().days[dow].breaks += interval;
-            },
+            (Event::SWITCH(time, job_id), true) => {
+                if job_id.get_jobtype(config).unwrap().project_id == cpid { continue; }
 
-            Event::SWITCH(time, job_id) => {
-                if job_id.get_jobtype(config).unwrap().project_id != cpid {
-                    dow = time.weekday().num_days_from_monday() as usize;
-                
-                    current_week_work.projects.get_mut(&cpid).unwrap().days[dow].end = Some(time);
-                    current_week_work.projects.get_mut(&cpid).unwrap().days[dow].total_day =
-                        (time - current_week_work.projects.get_mut(&cpid).unwrap().days[dow].start.unwrap()).to_std().unwrap()
-                        - current_week_work.projects.get_mut(&cpid).unwrap().days[dow].breaks;
+                if time.iso_week().week() != current_week_work.week_number {
+                    if current_day_work.get(&cpid).unwrap().total_day == Duration::from_secs(0) {
+                        eprintln!("Work was not finished on project {} last week, work on that project that day is ignored.", cpid);
+                    }
 
-                    cpid = job_id.get_jobtype(config).expect(&format!("No project found for id {:?}", job_id)).project_id;
+                    current_week_work.days[last_dow] = current_day_work;
+                    parsed_sheet.push(current_week_work);
 
-                    // TODO!: Fant feilen, eventen som starter dagen finnes i strukturen, men får ikke en end. Det gjelder kunn ved skifte til ny dag internt i en uke.
-                    if current_week_work.projects.contains_key(&cpid) {
-                        let end_time = current_week_work.projects.get(&cpid).unwrap().days[dow].end.unwrap();
-                        current_week_work.projects.get_mut(&cpid).unwrap().days[dow].breaks +=
-                            (time - end_time)
-                            .to_std().unwrap();
-                        current_week_work.projects.get_mut(&cpid).unwrap().days[dow].end = None;
+                    cpid = job_id.get_jobtype(config).unwrap().project_id;
+                    
+                    current_week_work = WeeksWork::default();
+                    current_week_work.week_number = time.iso_week().week();
+                    current_day_work = DaysWork::default();
+                    current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
+
+                    last_dow = time.weekday().num_days_from_monday() as usize;
+
+                } else if time.weekday().num_days_from_monday() as usize != last_dow {
+                    if current_day_work.get(&cpid).unwrap().total_day == Duration::from_secs(0) {
+                        eprintln!("Work was not finished on project {} last day, work on that project that day is ignored.", cpid);
+                    }
+
+                    current_week_work.days[last_dow] = current_day_work;
+
+                    cpid = job_id.get_jobtype(config).unwrap().project_id;
+
+                    current_day_work = DaysWork::default();
+                    current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
+
+                    last_dow = time.weekday().num_days_from_monday() as usize;
+
+                } else {
+                    current_day_work.get_mut(&cpid).unwrap().total_day = (time - current_day_work.get(&cpid).unwrap().start.unwrap()).to_std().unwrap();
+
+                    cpid = job_id.get_jobtype(config).unwrap().project_id;
+
+                    if let Some(sofar) = current_day_work.get_mut(&cpid) {
+                        if sofar.total_day == Duration::from_secs(0) {
+                            eprintln!("Work was not finished on project {} this day, work on this project today is ignored.", cpid);
+                        }
+                        sofar.start = Some(time - chrono::Duration::from_std(sofar.total_day).unwrap());
                     } else {
-                        current_week_work.projects.insert(cpid, WeeksProjectWork::default());
-                        current_week_work.projects.get_mut(&cpid).unwrap().days[dow].start = Some(time);
+                        current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
                     }
                 }
             }
+
+            (Event::END(time), true) => {
+                if time.iso_week().week() != current_week_work.week_number || time.weekday().num_days_from_monday() as usize != last_dow {
+                    panic!("Illegal end on start of new day")
+                } else {
+                    current_day_work.get_mut(&cpid).unwrap().total_day = (time - current_day_work.get(&cpid).unwrap().start.unwrap()).to_std().unwrap();
+                }
+            },
+
+            (Event::PAUSE(interval), true) => {
+                let project_start = current_day_work.get(&cpid).unwrap().start.unwrap();
+                current_day_work.get_mut(&cpid).unwrap().start = Some(project_start - chrono::Duration::from_std(interval).expect(&format!("Pause duration {:?} is not a valid chrono duration", interval)));
+            },
+
+            (Event::END(_) | Event::PAUSE(_), false) => { panic!("Illegal event {} before event BEGIN in timesheet.", event) }
         }
     };
 
     parsed_sheet.push(current_week_work);
-    parsed_sheet
+    (parsed_sheet, JobIdentifier::ProjectId(cpid))
 }
 
 
 #[derive(Default, Clone, Copy)]
-pub struct DaysWork {
+pub struct DaysProjectWork {
     pub total_day: Duration,
-    start: Option<DateTime<Local>>,
-    end: Option<DateTime<Local>>,
-    breaks: Duration
+    start: Option<DateTime<Local>>
 }
 
 
-#[derive(Default, Clone, Copy)]
-pub struct WeeksProjectWork {
-    pub days: [DaysWork; 7]
-}
-
-
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct WeeksWork {
-    pub total: WeeksProjectWork,
-    pub projects: BTreeMap<usize, WeeksProjectWork>,
+    pub days: [DaysWork; 7],
     pub week_number: u32
 }
