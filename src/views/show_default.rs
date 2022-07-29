@@ -1,14 +1,16 @@
 use prettytable::{Table, Row, Cell, row, cell, format};
 
-use super::viewer::ParsedSheet;
+use super::viewer::{ParsedSheet};
 use crate::events::JobIdentifier;
 use crate::options::Options;
 
 
 pub fn show(parsed: ParsedSheet, current_project_id: JobIdentifier, config: &Options) {
-    println!("Report for timesheet formatted for MS Dynamic:");
+    println!("Using default formatting for timesheet:");
 
-    for week in parsed {
+    for parsed_week in parsed {
+        let week = parsed_week.transpose();
+
         let mut table = Table::new();
         table.set_titles(row![H10 -> format!("Report for week {}:", week.week_number)]);
         table.add_row(row!["Name", "ID", "Category", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
@@ -37,6 +39,7 @@ pub fn show(parsed: ParsedSheet, current_project_id: JobIdentifier, config: &Opt
         table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
         println!();
         table.printstd();
+        println!("Total work: {}h, {}m", week.total_time.as_secs() / 3600, (week.total_time.as_secs() / 60) % 60);
     }
 
     let current_project = current_project_id.get_jobtype(config).unwrap();

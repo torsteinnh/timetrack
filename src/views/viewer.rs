@@ -21,7 +21,7 @@ pub fn show(sheet: Sheet, config: &Options) {
 }
 
 
-fn parse_sheet(mut sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
+fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
     let mut parsed_sheet: ParsedSheet = vec![];
 
     let mut current_week_work: WeeksWork = WeeksWork::default();
@@ -77,7 +77,6 @@ fn parse_sheet(mut sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifie
             },
 
             (Event::SWITCH(_, job_id), false) => {
-                begun = true;
                 cpid = job_id.get_jobtype(config).unwrap().project_id;
             },
 
@@ -144,7 +143,7 @@ fn parse_sheet(mut sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifie
                 current_day_work.get_mut(&cpid).unwrap().start = Some(project_start - chrono::Duration::from_std(interval).expect(&format!("Pause duration {:?} is not a valid chrono duration", interval)));
             },
 
-            (Event::END(_) | Event::PAUSE(_), false) => { panic!("Illegal event {} before event BEGIN in timesheet.", event) }
+            (illegal_event @ (Event::END(_) | Event::PAUSE(_)), false) => { panic!("Illegal event {} before event BEGIN in timesheet.", illegal_event) }
         }
     };
 
@@ -164,4 +163,42 @@ pub struct DaysProjectWork {
 pub struct WeeksWork {
     pub days: [DaysWork; 7],
     pub week_number: u32
+}
+
+impl WeeksWork {
+    pub fn transpose(self) -> TransposedWeeksWork {
+        let mut transposed = TransposedWeeksWork::default();
+        transposed.week_number = self.week_number;
+
+        for day in 0..7 as usize{
+            let mut total = Duration::from_secs(0);
+            for (cpid, project_day) in self.days[day].iter() {
+                total += project_day.total_day;
+                if let Some(project_week) = transposed.projects.get_mut(cpid) {
+                    project_week.days[day] = *project_day;
+                } else {
+                    transposed.projects.insert(*cpid, TransposedWeeksProjectWork::default());
+                    transposed.projects.get_mut(cpid).unwrap().days[day] = *project_day;
+                }
+            }
+            transposed.total_time += total;
+            transposed.total.days[day].total_day = total;
+        }
+
+        transposed
+    }
+}
+
+
+#[derive(Default)]
+pub struct TransposedWeeksWork {
+    pub total: TransposedWeeksProjectWork,
+    pub total_time: Duration,
+    pub projects: BTreeMap<usize, TransposedWeeksProjectWork>,
+    pub week_number: u32
+}
+
+#[derive(Default)]
+pub struct TransposedWeeksProjectWork {
+    pub days: [DaysProjectWork; 7]
 }
