@@ -140,13 +140,19 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
 
             (Event::PAUSE(interval), true) => {
                 let project_start = current_day_work.get(&cpid).unwrap().start.unwrap();
-                current_day_work.get_mut(&cpid).unwrap().start = Some(project_start - chrono::Duration::from_std(interval).expect(&format!("Pause duration {:?} is not a valid chrono duration", interval)));
+                current_day_work.get_mut(&cpid).unwrap().start = Some(project_start + chrono::Duration::from_std(interval).expect(&format!("Pause duration {:?} is not a valid chrono duration", interval)));
             },
 
             (illegal_event @ (Event::END(_) | Event::PAUSE(_)), false) => { panic!("Illegal event {} before event BEGIN in timesheet.", illegal_event) }
         }
     };
 
+    let current_time = Local::now();
+    if current_week_work.week_number == current_time.iso_week().week() && last_dow == current_time.weekday().num_days_from_monday() as usize && current_day_work.get(&cpid).unwrap().total_day == Duration::from_secs(0) {
+        current_day_work.get_mut(&cpid).unwrap().total_day = (current_time - current_day_work.get(&cpid).unwrap().start.unwrap()).to_std().unwrap();
+    }
+
+    current_week_work.days[last_dow] = current_day_work;
     parsed_sheet.push(current_week_work);
     (parsed_sheet, JobIdentifier::ProjectId(cpid))
 }
