@@ -5,7 +5,7 @@ use crate::events::JobIdentifier;
 use crate::options::Options;
 
 
-pub fn show(parsed: ParsedSheet, current_project_id: JobIdentifier, config: &Options) {
+pub fn show(parsed: ParsedSheet, current_project_identifier: JobIdentifier, config: &Options) {
     println!("Using default formatting for timesheet:");
 
     for parsed_week in parsed {
@@ -18,7 +18,7 @@ pub fn show(parsed: ParsedSheet, current_project_id: JobIdentifier, config: &Opt
         for (key, project_week) in week.projects.iter() {
             let mut cell_vec: Vec<Cell> = Vec::new();
 
-            let project = JobIdentifier::ProjectId(*key).get_jobtype(config).unwrap();
+            let project = JobIdentifier::InternalId(*key).get_jobtype(config).unwrap();
 
             cell_vec.push(cell!(project.u_name));
             cell_vec.push(cell!(r -> project.project_id));
@@ -42,7 +42,7 @@ pub fn show(parsed: ParsedSheet, current_project_id: JobIdentifier, config: &Opt
         println!("Total work: {}h, {}m", week.total_time.as_secs() / 3600, (week.total_time.as_secs() / 60) % 60);
     }
 
-    let current_project = current_project_id.get_jobtype(config).unwrap();
+    let current_project = current_project_identifier.get_jobtype(config).unwrap();
     println!();
-    println!("Working on project {} with ID {} and category {}.", current_project.u_name, current_project.project_id, current_project.category);
+    println!("Working on project {} with ID {}, category {} and internal id {}.", current_project.u_name, current_project.project_id, current_project.category, current_project.internal_id);
 }

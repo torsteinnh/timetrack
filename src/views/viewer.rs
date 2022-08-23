@@ -13,10 +13,10 @@ pub type DaysWork = BTreeMap<usize, DaysProjectWork>;
 
 
 pub fn show(sheet: Sheet, config: &Options) {
-    let (parsed, project_id) = parse_sheet(sheet, config);
+    let (parsed, project_identifier) = parse_sheet(sheet, config);
 
     match config.default_output {
-        LogType::Default => show_default::show(parsed, project_id, config)
+        LogType::Default => show_default::show(parsed, project_identifier, config)
     }
 }
 
@@ -28,7 +28,7 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
     let mut current_day_work: DaysWork = DaysWork::default();
 
     let mut last_dow: usize = 0; // Last parsed day of week
-    let mut cpid: usize = JobType::default().project_id; // Current project ID
+    let mut cpid: usize = JobType::default().internal_id; // Current logical ID
 
     
     // Handler logic for allowing event switching before first begin in sheet
@@ -77,11 +77,11 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
             },
 
             (Event::SWITCH(_, job_id), false) => {
-                cpid = job_id.get_jobtype(config).unwrap().project_id;
+                cpid = job_id.get_jobtype(config).unwrap().internal_id;
             },
 
             (Event::SWITCH(time, job_id), true) => {
-                if job_id.get_jobtype(config).unwrap().project_id == cpid { continue; }
+                if job_id.get_jobtype(config).unwrap().internal_id == cpid { continue; }
 
                 if time.iso_week().week() != current_week_work.week_number {
                     if current_day_work.get(&cpid).unwrap().total_day == Duration::from_secs(0) {
@@ -91,7 +91,7 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
                     current_week_work.days[last_dow] = current_day_work;
                     parsed_sheet.push(current_week_work);
 
-                    cpid = job_id.get_jobtype(config).unwrap().project_id;
+                    cpid = job_id.get_jobtype(config).unwrap().internal_id;
                     
                     current_week_work = WeeksWork::default();
                     current_week_work.week_number = time.iso_week().week();
@@ -107,7 +107,7 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
 
                     current_week_work.days[last_dow] = current_day_work;
 
-                    cpid = job_id.get_jobtype(config).unwrap().project_id;
+                    cpid = job_id.get_jobtype(config).unwrap().internal_id;
 
                     current_day_work = DaysWork::default();
                     current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
@@ -117,13 +117,14 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
                 } else {
                     current_day_work.get_mut(&cpid).unwrap().total_day = (time - current_day_work.get(&cpid).unwrap().start.unwrap()).to_std().unwrap();
 
-                    cpid = job_id.get_jobtype(config).unwrap().project_id;
+                    cpid = job_id.get_jobtype(config).unwrap().internal_id;
 
                     if let Some(sofar) = current_day_work.get_mut(&cpid) {
                         if sofar.total_day == Duration::from_secs(0) {
                             eprintln!("Work was not finished on project {} this day, work on this project today is ignored.", cpid);
                         }
                         sofar.start = Some(time - chrono::Duration::from_std(sofar.total_day).unwrap());
+                        sofar.total_day = Duration::from_secs(0);
                     } else {
                         current_day_work.insert(cpid, DaysProjectWork { total_day: Duration::from_secs(0), start: Some(time) });
                     }
@@ -154,7 +155,7 @@ fn parse_sheet(sheet: Sheet, config: &Options) -> (ParsedSheet, JobIdentifier) {
 
     current_week_work.days[last_dow] = current_day_work;
     parsed_sheet.push(current_week_work);
-    (parsed_sheet, JobIdentifier::ProjectId(cpid))
+    (parsed_sheet, JobIdentifier::InternalId(cpid))
 }
 
 

@@ -76,12 +76,12 @@ pub fn pause(config: &Options, pause_time: &str, verbose: bool) {
 
 pub fn switch(config: &Options, into: String, verbose: bool) {
     let job_id = match into.clone().parse::<usize>() {
-        Ok(id) => JobIdentifier::ProjectId(id),
+        Ok(id) => JobIdentifier::InternalId(id),
         Err(_) => JobIdentifier::UName(into.clone())
     };
 
     if let None = job_id.get_jobtype(config) {
-        eprintln!("Could not find project identified by {}, try creating job first with \"timetrack new\"", &into);
+        eprintln!("Could not find project identified by {}. Try creating job first with \"timetrack new\" or list projects with \"timetrack projects\". Event not written.", &into);
         exit(1);
     }
 
@@ -140,7 +140,7 @@ impl PartialEq for Event {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum JobIdentifier {
     UName(String),
-    ProjectId(usize)
+    InternalId(usize)
 }
 
 impl JobIdentifier {
@@ -148,7 +148,7 @@ impl JobIdentifier {
         for job in &config.projects {
             match self {
                 Self::UName(name) => { if name == &job.u_name { return Some(job.clone()) } },
-                Self::ProjectId(id) => { if id == &job.project_id { return Some(job.clone()) } }
+                Self::InternalId(id) => { if id == &job.internal_id { return Some(job.clone()) } }
             }
         }
         None

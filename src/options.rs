@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use dirs;
-use prettytable::{Table, row, cell, format};
+use prettytable::{Table, row, format};
 
 use std::fs;
 use std::io::{self, Write};
@@ -57,6 +57,7 @@ impl Default for LogType {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JobType {
+    pub internal_id: usize,
     pub u_name: String,
     pub project_id: usize,
     pub category: usize,
@@ -66,6 +67,7 @@ pub struct JobType {
 impl Default for JobType {
     fn default() -> Self {
         JobType{
+            internal_id: 0,
             u_name: String::from("example"),
             project_id: 0,
             category: 0,
@@ -88,7 +90,7 @@ A job consists of a unique name, a unique project id, a non-unique category id a
     iobuff = iobuff.trim().to_string();
     let u_name: String = iobuff.clone();
     
-    print!("Input unique project ID (int): ");
+    print!("Input project ID (int): ");
     io::stdout().flush().unwrap();
     iobuff.drain(..);
     io::stdin().read_line(&mut iobuff).unwrap();
@@ -107,13 +109,20 @@ A job consists of a unique name, a unique project id, a non-unique category id a
     iobuff.drain(..);
     io::stdin().read_line(&mut iobuff).unwrap();
     iobuff = iobuff.trim().to_string();
-    let description: String = iobuff;
-    
-    let new_job = JobType{u_name: u_name.clone(), project_id, category, description};
+    let description: String = iobuff.clone();
 
-    if let Some(job) = JobIdentifier::ProjectId(project_id).get_jobtype(&config) {
-        eprintln!("Job with id {} already exists:", project_id);
-        eprintln!("Job name {}, category {} and description \"{}\"", job.u_name, job.category, job.description);
+    print!("Input unique project internal ID (int): ");
+    io::stdout().flush().unwrap();
+    iobuff.drain(..);
+    io::stdin().read_line(&mut iobuff).unwrap();
+    iobuff = iobuff.trim().to_string();
+    let internal_id: usize = iobuff.parse().unwrap();
+    
+    let new_job = JobType{internal_id: internal_id, u_name: u_name.clone(), project_id, category, description};
+
+    if let Some(job) = JobIdentifier::InternalId(internal_id).get_jobtype(&config) {
+        eprintln!("Job with internal id {} already exists:", internal_id);
+        eprintln!("Job name {}, id {}, category {} and description \"{}\"", job.u_name, job.project_id, job.category, job.description);
         exit(1);
     }
     if let Some(job) = JobIdentifier::UName(u_name).get_jobtype(&config) {
@@ -131,11 +140,11 @@ A job consists of a unique name, a unique project id, a non-unique category id a
 pub fn show_jobs(mut config: Options) {
     println!("List of registered projects in the config:");
     let mut table = Table::new();
-    table.set_titles(row!["Name", "ID", "Category", "Description"]);
+    table.set_titles(row![b -> "Name", b -> "ID", b -> "Category", b -> "Description", bi -> "Internal ID"]);
 
-    config.projects.sort_by_key(|job| job.project_id);
+    config.projects.sort_by_key(|job| job.internal_id);
     for job in config.projects {
-        table.add_row(row![cell!(job.u_name), cell!(r -> job.project_id), cell!(r -> job.category), cell!(job.description)]);
+        table.add_row(row![job.u_name, r -> job.project_id, r -> job.category, job.description, ri -> job.internal_id]);
     }
 
     table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
