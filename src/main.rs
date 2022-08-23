@@ -10,13 +10,17 @@ use timetrack::views::viewer;
 
 fn main() {
     let cli_yaml = load_yaml!("timetrack.yaml");
-    let args = App::from_yaml(cli_yaml).get_matches();
+    let args = App::from_yaml(cli_yaml)
+        .name(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .get_matches();
 
     let verbose = args.is_present("verbose");
-    let muted = args.is_present("mute");
 
     let usr_path = dirs::home_dir()
-            .expect("Unable to find homedir, cannot make default config with path to timesheet.")
+            .expect("Unable to find homedir for user, this is needed by the config file system.")
             .to_str()
             .expect("Unable to read homedir as a str, please fix.")
             .to_owned();
@@ -48,7 +52,7 @@ fn main() {
             events::switch(&config, into, verbose);
         }
 
-        Some(("nevermind", _sub_args)) => { events::nevermind(&config, muted); }
+        Some(("nevermind", _sub_args)) => { events::nevermind(&config); }
 
         // Output
         Some(("show", _sub_args)) => {

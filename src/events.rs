@@ -12,22 +12,43 @@ use crate::options::{JobType, Options};
 
 pub type Sheet = Vec<Event>;
 
-// TODO: Add warning if begin after other than end
+fn check_begun(sheet: &Sheet) -> Option<bool> {
+    for event in sheet.iter().rev() {
+        if event == &Event::BEGIN(Local::now()) {
+            return Some(true);
+        } else if event == &Event::END(Local::now()) {
+            return Some(false);
+        }
+    }
+    None
+}
+
+
 pub fn begin(config: &Options, verbose: bool) {
     let begin_event = Event::BEGIN(Local::now());
-
     let mut sheet = read_sheet(&config.timesheet);
+
+    if let Some(true) = check_begun(&sheet) {
+        eprintln!("Illegal event BEGIN while sheet in begun state, event not written.");
+        exit(1);
+    }
+
     sheet.push(begin_event);
     write_sheet(sheet, &config.timesheet);
 
     if verbose { println!("Wrote begin to timesheet at {}", &config.timesheet); }
 }
 
-// TODO: Panic if end after end, panic if end on new day
 pub fn end(config: &Options, verbose: bool) {
     let end_event = Event::END(Local::now());
 
     let mut sheet = read_sheet(&config.timesheet);
+
+    if let Some(false) = check_begun(&sheet) {
+        eprintln!("Illegal event END while sheet in ended state, event not written.");
+        exit(1);
+    }
+    
     sheet.push(end_event);
     write_sheet(sheet, &config.timesheet);
 
@@ -41,6 +62,12 @@ pub fn pause(config: &Options, pause_time: &str, verbose: bool) {
     let pause_event = Event::PAUSE(pause_duration);
 
     let mut sheet = read_sheet(&config.timesheet);
+
+    if let Some(false) = check_begun(&sheet) {
+        eprintln!("Illegal event PAUSE while sheet in ended state, event not written.");
+        exit(1);
+    }
+
     sheet.push(pause_event);
     write_sheet(sheet, &config.timesheet);
 
@@ -67,12 +94,12 @@ pub fn switch(config: &Options, into: String, verbose: bool) {
     if verbose { println!("Wrote switch to {} to timesheet at {}", &into, &config.timesheet); }
 }
 
-pub fn nevermind(config: &Options, muted: bool) {
+pub fn nevermind(config: &Options) {
     let mut sheet = read_sheet(&config.timesheet);
     let popped = sheet.pop();
     write_sheet(sheet, &config.timesheet);
 
-    if !muted {println!("Removed event {:?} from timesheet {}", popped, &config.timesheet)}
+    println!("Removed event {:?} from timesheet {}", popped, &config.timesheet)
 }
 
 
@@ -91,6 +118,20 @@ impl fmt::Display for Event {
             Self::END(..) => write!(f, "END"),
             Self::PAUSE(..) => write!(f, "PAUSE"),
             Self::SWITCH(..) => write!(f, "SWITCH")
+        }
+    }
+}
+
+impl PartialEq for Event {
+    fn eq(&self, other: &Self) -> bool {
+        use Event::*;
+        
+        match (&self, other) {
+            (BEGIN(_), BEGIN(_)) => true,
+            (END(_), END(_)) => true,
+            (PAUSE(_), PAUSE(_)) => true,
+            (SWITCH(_, _), SWITCH(_, _)) => true,
+            _ => false
         }
     }
 }

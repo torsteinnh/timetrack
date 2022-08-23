@@ -1,8 +1,4 @@
-
 name: timetrack
-version: "0.1"
-author: Torstein Nordgaard-Hansen <torsteinnh@gmail.com>
-about: Timetrack is a small tool to help with timetracking during work hours.
 
 args:
     - verbose:
@@ -10,11 +6,6 @@ args:
         long: verbose
         global: true
         help: Prints extra information, unimplemented.
-    - mute:
-        short: q
-        long: quiet
-        global: true
-        help: Mutes all output messages, unimplemented.
     - config:
         short: c
         long: config
