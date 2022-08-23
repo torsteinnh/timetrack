@@ -1,3 +1,5 @@
 /target
+/completions
+
 .vscode
 .DS_Store

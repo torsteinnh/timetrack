@@ -1,8 +1,8 @@
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "timetrack"
-version = "0.2.0"
+name = "tt"
+version = "0.2.1"
 authors = ["Torstein Nordgård-Hansen <torsteinnh@gmail.com>"]
 description = "Timetrack is a small tool to help with timetracking during work hours."
 edition = "2021"
@@ -11,7 +11,7 @@ edition = "2021"
 name = "timetrack"
 
 [[bin]]
-name = "timetrack"
+name = "tt"
 
 
 [dependencies]
@@ -22,3 +22,7 @@ chrono = { version = "0.4", features = ["serde"] }
 parse_duration = "2.1"
 dirs = "4.0"
 prettytable-rs = "0.9"
+
+[build-dependencies]
+clap = { version = "3.2", features = ["derive"] }
+clap_complete = "3.2"
