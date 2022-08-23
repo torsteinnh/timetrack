@@ -59,8 +59,8 @@ impl Default for LogType {
 pub struct JobType {
     pub internal_id: usize,
     pub u_name: String,
-    pub project_id: usize,
-    pub category: usize,
+    pub project_id: String,
+    pub category: String,
     pub description: String
 }
 
@@ -69,8 +69,8 @@ impl Default for JobType {
         JobType{
             internal_id: 0,
             u_name: String::from("example"),
-            project_id: 0,
-            category: 0,
+            project_id: String::from("0"),
+            category: String::from("0"),
             description: String::from("A phony job type for when none is given.")
         }
     }
@@ -90,19 +90,19 @@ A job consists of a unique name, a unique project id, a non-unique category id a
     iobuff = iobuff.trim().to_string();
     let u_name: String = iobuff.clone();
     
-    print!("Input project ID (int): ");
+    print!("Input project ID (string): ");
     io::stdout().flush().unwrap();
     iobuff.drain(..);
     io::stdin().read_line(&mut iobuff).unwrap();
     iobuff = iobuff.trim().to_string();
-    let project_id: usize = iobuff.parse().unwrap();
+    let project_id: String = iobuff.clone();
     
-    print!("Input project category (int): ");
+    print!("Input project category (string): ");
     io::stdout().flush().unwrap();
     iobuff.drain(..);
     io::stdin().read_line(&mut iobuff).unwrap();
     iobuff = iobuff.trim().to_string();
-    let category: usize = iobuff.parse().unwrap();
+    let category: String = iobuff.clone();
     
     print!("Input descriptive string for project (string): ");
     io::stdout().flush().unwrap();
