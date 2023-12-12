@@ -11,7 +11,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/cli.rs");
     println!("cargo:rerun-if-changed=Cargo.toml");
 
-    let mut app = Cli::into_app();
+    let mut app = Cli::command();
     let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("completions/");
     create_dir_all(&out_dir).expect("Unable to create completions dir.");
 

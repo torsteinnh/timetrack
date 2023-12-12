@@ -12,23 +12,34 @@ use crate::options::{JobType, Options};
 
 pub type Sheet = Vec<Event>;
 
-fn check_begun(sheet: &Sheet) -> Option<bool> {
+fn check_begun(sheet: &Sheet, time: Option<DateTime<Local>>) -> Option<bool> {
+    let now = time.unwrap_or(Local::now());
     for event in sheet.iter().rev() {
-        if event == &Event::BEGIN(Local::now()) {
-            return Some(true);
-        } else if event == &Event::END(Local::now()) {
-            return Some(false);
+        match event {
+            Event::BEGIN(time) => {
+                if time < &now { return Some(true); } else { continue; };
+            },
+            Event::END(time) => {
+                if time < &now { return Some(false); } else { continue; };
+            },
+            _ => continue
         }
     }
     None
 }
 
 
-pub fn begin(config: &Options, verbose: bool) {
-    let begin_event = Event::BEGIN(Local::now());
+pub fn begin(config: &Options, duration: &Option<String>, verbose: bool) {
+    let offset = if let Some(str_duration) = duration {
+        chrono::Duration::from_std(parse_duration::parse(str_duration).expect(&format!("Unable to parse {} into a duration.", str_duration))).unwrap()
+    } else {
+        chrono::Duration::from_std(parse_duration::parse("0m").unwrap()).unwrap()
+    };
+    
+    let begin_event = Event::BEGIN(Local::now() - offset);
     let mut sheet = read_sheet(&config.timesheet);
-
-    if let Some(true) = check_begun(&sheet) {
+    
+    if let Some(true) = check_begun(&sheet, Some(Local::now() - offset)) {
         eprintln!("Illegal event BEGIN while sheet in begun state, event not written.");
         exit(1);
     }
@@ -39,12 +50,18 @@ pub fn begin(config: &Options, verbose: bool) {
     if verbose { println!("Wrote begin to timesheet at {}", &config.timesheet); }
 }
 
-pub fn end(config: &Options, verbose: bool) {
-    let end_event = Event::END(Local::now());
+pub fn end(config: &Options, duration: &Option<String>, verbose: bool) {
+    let offset = if let Some(str_duration) = duration {
+        chrono::Duration::from_std(parse_duration::parse(str_duration).expect(&format!("Unable to parse {} into a duration.", str_duration))).unwrap()
+    } else {
+        chrono::Duration::from_std(parse_duration::parse("0m").unwrap()).unwrap()
+    };
+
+    let end_event = Event::END(Local::now() + offset);
 
     let mut sheet = read_sheet(&config.timesheet);
 
-    if let Some(false) = check_begun(&sheet) {
+    if let Some(false) = check_begun(&sheet, Some(Local::now() + offset)) {
         eprintln!("Illegal event END while sheet in ended state, event not written.");
         exit(1);
     }
@@ -63,7 +80,7 @@ pub fn pause(config: &Options, pause_time: &str, verbose: bool) {
 
     let mut sheet = read_sheet(&config.timesheet);
 
-    if let Some(false) = check_begun(&sheet) {
+    if let Some(false) = check_begun(&sheet, None) {
         eprintln!("Illegal event PAUSE while sheet in ended state, event not written.");
         exit(1);
     }

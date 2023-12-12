@@ -21,10 +21,18 @@ pub struct Cli {
 pub enum Subcommands {
 
     /// Command for creating a start work event.
-    Begin,
+    Begin {
+        /// Optional duration between the start of the day and the command was entered, positive delay implies an earlier start.
+        #[clap(short, long, value_parser, value_name = "DURATION")]
+        duration: Option<String>
+    },
 
     /// Command for creating an end work event.
-    End,
+    End {
+        /// Optional duration between the end of the day and the command was entered, positive delay implies a later end.
+        #[clap(short, long, value_parser, value_name = "DURATION")]
+        duration: Option<String>
+    },
 
     /// Command for entering a pause event, such as a lunch break.
     Pause {

@@ -33,9 +33,9 @@ fn main() {
 
     match args.subcommand {
         // Events
-        Subcommands::Begin => { events::begin(&config, verbose);}
+        Subcommands::Begin { duration } => { events::begin(&config, &duration, verbose);}
 
-        Subcommands::End => { events::end(&config, verbose); }
+        Subcommands::End { duration } => { events::end(&config, &duration, verbose); }
 
         Subcommands::Pause { duration } => {
             events::pause(&config, &duration, verbose);
