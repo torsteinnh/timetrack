@@ -15,7 +15,7 @@ fn main() {
     let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("completions/");
     create_dir_all(&out_dir).expect("Unable to create completions dir.");
 
-    for shell in [Shell::Bash, Shell::PowerShell] {
+    for shell in [Shell::Bash, Shell::PowerShell, Shell::Zsh] {
         generate_to(shell, &mut app, "tt", out_dir.clone()).unwrap();
     }
 }
