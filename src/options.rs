@@ -4,7 +4,6 @@ use prettytable::{Table, row, format};
 
 use std::fs;
 use std::io::{self, Write};
-use std::process::exit;
 
 use crate::events::JobIdentifier;
 
@@ -82,20 +81,48 @@ pub fn new_job(mut config: Options) {
 A job consists of a unique name, a unique project id, a non-unique category id and a description.");
 
     let mut iobuff: String = "".to_string();
+
+    let mut u_name: String;
+    let mut internal_id: usize;
     
-    print!("Input unique name (string): ");
-    io::stdout().flush().unwrap();
-    iobuff.drain(..);
-    io::stdin().read_line(&mut iobuff).unwrap();
-    iobuff = iobuff.trim().to_string();
-    let u_name: String = iobuff.clone();
+    loop {
+        print!("Input unique name (string): ");
+        io::stdout().flush().unwrap();
+        iobuff.drain(..);
+        io::stdin().read_line(&mut iobuff).unwrap();
+        iobuff = iobuff.trim().to_string();
+        u_name = iobuff.clone();
+        
+        if let Some(job) = JobIdentifier::UName(u_name.clone()).get_jobtype(&config) {
+            eprintln!("Job with name {} already exists:", job.u_name);
+            eprintln!("Job id {}, category {} and description \"{}\"", job.project_id, job.category, job.description);
+        } else {
+            break;
+        }
+    }
     
+    loop {
+        print!("Input unique project internal ID (int): ");
+        io::stdout().flush().unwrap();
+        iobuff.drain(..);
+        io::stdin().read_line(&mut iobuff).unwrap();
+        iobuff = iobuff.trim().to_string();
+        internal_id = iobuff.parse().unwrap();
+        
+        if let Some(job) = JobIdentifier::InternalId(internal_id).get_jobtype(&config) {
+            eprintln!("Job with internal id {} already exists:", internal_id);
+            eprintln!("Job name {}, id {}, category {} and description \"{}\"", job.u_name, job.project_id, job.category, job.description);
+        } else {
+            break;
+        }
+    }
+
     print!("Input project ID (string): ");
     io::stdout().flush().unwrap();
     iobuff.drain(..);
     io::stdin().read_line(&mut iobuff).unwrap();
     iobuff = iobuff.trim().to_string();
-    let project_id: String = iobuff.clone();
+    let project_id : String = iobuff.clone();
     
     print!("Input project category (string): ");
     io::stdout().flush().unwrap();
@@ -110,28 +137,8 @@ A job consists of a unique name, a unique project id, a non-unique category id a
     io::stdin().read_line(&mut iobuff).unwrap();
     iobuff = iobuff.trim().to_string();
     let description: String = iobuff.clone();
-
-    print!("Input unique project internal ID (int): ");
-    io::stdout().flush().unwrap();
-    iobuff.drain(..);
-    io::stdin().read_line(&mut iobuff).unwrap();
-    iobuff = iobuff.trim().to_string();
-    let internal_id: usize = iobuff.parse().unwrap();
     
     let new_job = JobType{internal_id: internal_id, u_name: u_name.clone(), project_id, category, description};
-
-    if let Some(job) = JobIdentifier::InternalId(internal_id).get_jobtype(&config) {
-        eprintln!("Job with internal id {} already exists:", internal_id);
-        eprintln!("Job name {}, id {}, category {} and description \"{}\"", job.u_name, job.project_id, job.category, job.description);
-        exit(1);
-    }
-    if let Some(job) = JobIdentifier::UName(u_name).get_jobtype(&config) {
-        eprintln!("Job with name {} already exists:", job.u_name);
-        eprintln!("Job id {}, category {} and description \"{}\"", job.project_id, job.category, job.description);
-        exit(1);
-    }
-
-
     config.projects.push(new_job);
     config.save();
 }
